@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Store Login and Coupon Generation Page</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+
+</head>
+<body>
+  <h1>Store Login</h1>
+  <form id="loginForm">
+    <label for="storeName">Store Name:</label>
+    <input type="text" id="storeName" name="storeName" required>
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required>
+
+    <button type="submit">Login</button>
+  </form>
+
+  <h1>Coupon Generation</h1>
+  <form id="couponForm" style="display: none;">
+    <label for="amount">Amount:</label>
+    <input type="number" id="amount" name="amount" required>
+
+    <button type="submit">Generate Coupon</button>
+  </form>
+
+  <div id="couponDisplay"></div>
+  <div id="qrCode"></div>
+
+
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const couponForm = document.getElementById('couponForm');
+    const couponDisplay = document.getElementById('couponDisplay');
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const storeName = document.getElementById('storeName').value;
+      const password = document.getElementById('password').value;
+
+      // Call the login function passing the store name and password
+      login(storeName, password);
+    });
+
+    couponForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  const amount = document.getElementById('amount').value;
+  const storeName = localStorage.getItem('storeName');
+
+  fetch('https://juniorcomplexvertex.mohammadsahil9.repl.co/coupons', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ amount, storeName })
+  })
+    .then(response => response.json())
+    .then(data => {
+      const couponCode = data.coupon.couponCode;
+
+      // Generate the QR code with the link
+      const qrCodeElement = document.getElementById('qrCode');
+      qrCodeElement.innerHTML = '';
+
+      const qrCode = new QRCode(qrCodeElement, {
+        text: `https://mysite.com/offers/${couponCode}`,
+        width: 200,
+        height: 200
+      });
+
+      // Display the QR code on the screen
+      const canvas = qrCode._htOption.canvas;
+      const image = canvas.toDataURL("image/png");
+
+      const qrCodeImage = document.createElement("img");
+      qrCodeImage.src = image;
+
+      qrCodeElement.appendChild(qrCodeImage);
+
+      // Display the "Redeem Here" message
+      couponDisplay.innerText = `Redeem Here: ${storeName}`;
+    })
+    .catch(error => {
+      console.error(error);
+      // Handle error
+    });
+});
+    function login(storeName, password) {
+      // Send a request to the server to validate the store name and password
+      fetch('https://juniorcomplexvertex.mohammadsahil9.repl.co/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ storeName, password })
+      })
+      .then(response => response.json())
+      .then(data => {
+        const isValid = data.isValid;
+
+        if (isValid) {
+          // Show the coupon generation form
+          loginForm.style.display = 'none';
+          couponForm.style.display = 'block';
+          // Save the store name in local storage for future requests
+          localStorage.setItem('storeName', storeName);
+        } else {
+          // Display an error message
+          couponDisplay.innerText = 'Invalid store name or password';
+        }
+      })
+      .catch(error => {
+        console.error(error);
+        // Handle error
+      });
+    }
+  </script>
+</body>
+</html>
